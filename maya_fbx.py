@@ -24,7 +24,7 @@ def export_rig_fbx(fbx_path, export_nodes):
     mel.eval('FBXResetExport;')
     mel.eval('FBXExportSmoothingGroups -v true;')
     mel.eval('FBXExportHardEdges -v false;')
-    mel.eval('FBXExportTangents -v true;')
+    mel.eval('FBXExportTangents -v false;')
     mel.eval('FBXExportSmoothMesh -v true;')
     mel.eval('FBXExportTriangulate -v false;')
     mel.eval('FBXExportSkins -v true;')

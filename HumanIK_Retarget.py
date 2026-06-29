@@ -172,7 +172,7 @@ class RetargetUI(QtWidgets.QWidget):
         anim_path_grid.setColumnStretch(1, 1)
 
         anim_path_grid.addWidget(_style_path_label('UE 导入路径:'), 0, 0)
-        self.anim_ue_import_line = QtWidgets.QLineEdit('/Game/Animations')
+        self.anim_ue_import_line = QtWidgets.QLineEdit('/Game/Maya/Animations')
         self.anim_ue_import_line.setMinimumHeight(row_height)
         anim_path_grid.addWidget(self.anim_ue_import_line, 0, 1, 1, 2)
 
