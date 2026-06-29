@@ -40,6 +40,164 @@ class DropPathLineEdit(QtWidgets.QLineEdit):
             super(DropPathLineEdit, self).dropEvent(event)
 
 
+class _CheckRowWidget(QtWidgets.QWidget):
+    _NAME_FONT_PX = 18
+    _DETAIL_FONT_PX = 15
+    _STATUS_COL_W = 26
+    _EXPAND_COL_W = 24
+
+    def __init__(self, label, parent=None):
+        super(_CheckRowWidget, self).__init__(parent)
+        self._label = label
+        self._details = []
+        self._expanded = False
+        self.status = 'pending'
+
+        outer = QtWidgets.QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        header = QtWidgets.QWidget()
+        header_layout = QtWidgets.QHBoxLayout(header)
+        header_layout.setContentsMargins(4, 3, 4, 3)
+        header_layout.setSpacing(6)
+
+        self._status_label = QtWidgets.QLabel('—')
+        self._status_label.setFixedWidth(self._STATUS_COL_W)
+        self._status_label.setAlignment(QtCore.Qt.AlignCenter)
+        self._status_label.setStyleSheet(
+            'color: #888888; font-size: 18px; background: transparent;')
+        header_layout.addWidget(self._status_label)
+
+        self._name_label = QtWidgets.QLabel(label)
+        self._name_label.setStyleSheet(
+            'color: #CCCCCC; font-size: %dpx; background: transparent;'
+            % self._NAME_FONT_PX)
+        header_layout.addWidget(self._name_label, stretch=1)
+
+        self._expand_btn = QtWidgets.QPushButton('▶')
+        self._expand_btn.setFixedSize(self._EXPAND_COL_W, 26)
+        self._expand_btn.setEnabled(False)
+        self._expand_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #666666;
+                border: none;
+                font-size: 11px;
+            }
+            QPushButton:enabled:hover { color: #AAAAAA; }
+            QPushButton:disabled { color: #333333; }
+        """)
+        self._expand_btn.clicked.connect(self._toggle_expanded)
+        header_layout.addWidget(self._expand_btn)
+
+        self._detail = QtWidgets.QLabel()
+        self._detail.setWordWrap(True)
+        self._detail.setContentsMargins(36, 0, 8, 6)
+        self._detail.setStyleSheet(
+            'color: #AAAAAA; font-size: %dpx; background: transparent;'
+            % self._DETAIL_FONT_PX)
+        self._detail.hide()
+
+        outer.addWidget(header)
+        outer.addWidget(self._detail)
+
+    def _set_expanded(self, expanded):
+        self._expanded = expanded and bool(self._details)
+        self._expand_btn.setText('▼' if self._expanded else '▶')
+        self._detail.setVisible(self._expanded)
+
+    def _toggle_expanded(self):
+        self._set_expanded(not self._expanded)
+
+    def set_status(self, status, details=None):
+        self.status = status
+        self._details = [line for line in (details or []) if line]
+        styles = {
+            'pending': ('—', '#888888', 18),
+            'running': ('…', '#2d7dff', 18),
+            'ok': ('✓', '#2fa84f', 20),
+            'warning': ('⚠', '#d6a800', 18),
+            'error': ('✗', '#d9534f', 20),
+        }
+        text, color, size = styles.get(status, styles['pending'])
+        self._status_label.setText(text)
+        self._status_label.setStyleSheet(
+            'color: %s; font-size: %dpx; background: transparent;'
+            % (color, size))
+
+        has_details = bool(self._details)
+        self._expand_btn.setEnabled(has_details)
+        if has_details:
+            detail_color = color if status in ('warning', 'error') else '#888888'
+            self._detail.setText('\n'.join(self._details))
+            self._detail.setStyleSheet(
+                'color: %s; font-size: %dpx; background: transparent;'
+                % (detail_color, self._DETAIL_FONT_PX))
+            self._set_expanded(status in ('warning', 'error'))
+        else:
+            self._detail.clear()
+            self._set_expanded(False)
+
+
+class CheckListWidget(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(CheckListWidget, self).__init__(parent)
+        self._scroll = QtWidgets.QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self._scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self._scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self._container = QtWidgets.QWidget()
+        self._container.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self._layout = QtWidgets.QVBoxLayout(self._container)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(2)
+        self._layout.addStretch(1)
+        self._scroll.setWidget(self._container)
+        outer = QtWidgets.QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self._scroll)
+        self._items = {}
+
+    def _clear_rows(self):
+        while self._layout.count() > 1:
+            item = self._layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        self._items.clear()
+
+    def load(self, specs):
+        spec_ids = [check_id for check_id, _label in specs]
+        if spec_ids and spec_ids == list(self._items.keys()):
+            self.reset_all()
+            return
+        self._clear_rows()
+        for check_id, label in specs:
+            row = _CheckRowWidget(label, self._container)
+            self._layout.insertWidget(self._layout.count() - 1, row)
+            self._items[check_id] = row
+            row.set_status('pending')
+        self._container.adjustSize()
+
+    def reset_all(self):
+        for row in self._items.values():
+            row.set_status('pending')
+
+    def set_check(self, check_id, status, details=None):
+        row = self._items.get(check_id)
+        if row:
+            row.set_status(status, details)
+
+    def count_finished(self):
+        return sum(
+            1 for row in self._items.values()
+            if row.status in ('ok', 'warning', 'error'))
+
+
 class TaskProgressWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(TaskProgressWidget, self).__init__(parent)

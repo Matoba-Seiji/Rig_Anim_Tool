@@ -129,7 +129,7 @@ def validate_skin_weights(mesh, skin_cluster, max_influences=4):
             if len(sample_unweighted) < 5:
                 sample_unweighted.append(idx)
     if too_many_count:
-        errors.append(
+        warnings.append(
             f'{short_node_name(mesh)} 有 {too_many_count} 个点影响骨骼数超过 '
             f'{max_influences}，示例点: {sample_too_many}')
     if unweighted_count:
@@ -186,6 +186,132 @@ def validate_rig_asset(mesh_transforms, root_joints, export_nodes):
     info.append(f'Mesh: {len(mesh_transforms)}')
     info.append(f'Joint: {len(joints)}')
     return {'errors': errors, 'warnings': warnings, 'info': info}
+
+
+def validate_rig_asset_checks(mesh_transforms, root_joints, export_nodes):
+    checks = {}
+
+    if not mesh_transforms:
+        checks['mesh'] = {'status': 'error', 'details': ['未找到 Mesh']}
+    else:
+        names = [short_node_name(m) for m in mesh_transforms]
+        preview = ', '.join(names[:8])
+        if len(names) > 8:
+            preview += ' ...'
+        checks['mesh'] = {
+            'status': 'ok',
+            'details': ['共 %d 个: %s' % (len(names), preview)],
+        }
+
+    if not root_joints:
+        checks['root'] = {'status': 'error', 'details': ['未找到 Root joint']}
+    elif len(root_joints) != 1:
+        names = ', '.join(short_node_name(j) for j in root_joints)
+        checks['root'] = {
+            'status': 'error',
+            'details': ['必须存在唯一 Root joint，当前 %d 个: %s'
+                        % (len(root_joints), names)],
+        }
+    elif short_node_name(root_joints[0]).lower() != 'root':
+        checks['root'] = {
+            'status': 'error',
+            'details': ['Root joint 必须命名为 root，当前为 %s'
+                        % short_node_name(root_joints[0])],
+        }
+    else:
+        checks['root'] = {
+            'status': 'ok',
+            'details': [root_joints[0]],
+        }
+
+    joints = cmds.ls(export_nodes, type='joint', long=True) or []
+    short_joint_names = [short_node_name(j) for j in joints]
+    duplicate_joint_names = sorted(
+        name for name in set(short_joint_names)
+        if short_joint_names.count(name) > 1)
+    if duplicate_joint_names:
+        checks['duplicate_joint'] = {
+            'status': 'error',
+            'details': ['重复骨骼名: %s' % ', '.join(duplicate_joint_names)],
+        }
+    else:
+        checks['duplicate_joint'] = {'status': 'ok', 'details': []}
+
+    generated_names = [
+        n for n in short_joint_names if has_generated_joint_name(n)]
+    if generated_names:
+        shown = ', '.join(generated_names[:10])
+        if len(generated_names) > 10:
+            shown += ' ...'
+        checks['generated_joint'] = {
+            'status': 'warning',
+            'details': ['存在默认生成骨骼名，建议规范命名: %s' % shown],
+        }
+    else:
+        checks['generated_joint'] = {'status': 'ok', 'details': []}
+
+    joint_name_set = set(short_joint_names)
+    mesh_bone_errors = []
+    mesh_scale_warnings = []
+    skin_errors = []
+    weight_errors = []
+    weight_warnings = []
+    for mesh in mesh_transforms:
+        mesh_name = short_node_name(mesh)
+        if mesh_name in joint_name_set:
+            mesh_bone_errors.append('%s 与骨骼重名' % mesh_name)
+        scale = cmds.xform(mesh, q=True, relative=True, scale=True)
+        if any(abs(v - 1.0) > 0.001 for v in scale):
+            mesh_scale_warnings.append(
+                '%s Scale 不是 1: %s'
+                % (mesh_name, [round(v, 4) for v in scale]))
+        skin_clusters = skin_clusters_for_mesh(mesh)
+        if not skin_clusters:
+            skin_errors.append('%s 没有 SkinCluster' % mesh_name)
+        else:
+            skin_errs, skin_warns = validate_skin_weights(
+                mesh, skin_clusters[0])
+            weight_errors.extend(skin_errs)
+            weight_warnings.extend(skin_warns)
+
+    checks['mesh_bone_name'] = {
+        'status': 'error' if mesh_bone_errors else 'ok',
+        'details': mesh_bone_errors,
+    }
+    checks['mesh_scale'] = {
+        'status': 'warning' if mesh_scale_warnings else 'ok',
+        'details': mesh_scale_warnings,
+    }
+    checks['skin_cluster'] = {
+        'status': 'error' if skin_errors else 'ok',
+        'details': skin_errors,
+    }
+    if weight_errors:
+        checks['weights'] = {'status': 'error', 'details': weight_errors}
+    elif weight_warnings:
+        checks['weights'] = {'status': 'warning', 'details': weight_warnings}
+    else:
+        checks['weights'] = {'status': 'ok', 'details': []}
+
+    if root_joints:
+        root_pos = cmds.xform(root_joints[0], q=True, ws=True, t=True)
+        if any(abs(v) > 0.001 for v in root_pos):
+            checks['root_origin'] = {
+                'status': 'warning',
+                'details': ['Root 不在世界原点: %s'
+                            % [round(v, 4) for v in root_pos]],
+            }
+        else:
+            checks['root_origin'] = {'status': 'ok', 'details': []}
+    else:
+        checks['root_origin'] = {'status': 'pending', 'details': []}
+
+    checks['export_filter'] = {
+        'status': 'ok',
+        'details': ['导出 %d 个 Mesh + %d 个 Joint'
+                    % (len(mesh_transforms), len(joints))],
+    }
+    return checks
 
 
 def format_validation_log(metadata, validation):

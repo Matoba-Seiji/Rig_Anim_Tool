@@ -14,7 +14,7 @@ import maya_fbx
 import ue_remote
 import ue_scripts
 
-TaskProgressWidget = ui_widgets.TaskProgressWidget
+CheckListWidget = ui_widgets.CheckListWidget
 DropPathLineEdit = ui_widgets.DropPathLineEdit
 FbxFileListWidget = ui_widgets.FbxFileListWidget
 
@@ -37,13 +37,27 @@ class RetargetUI(QtWidgets.QWidget):
         parent = get_maya_main_window()
         super().__init__(parent)
 
-        self.setWindowTitle('Maya 到 UE 工具')
+        self.setWindowTitle('绑定动画工具')
         self.setWindowFlags(QtCore.Qt.Dialog)
         self.setMinimumWidth(800)
 
         root_layout = QtWidgets.QVBoxLayout(self)
         self.tabs = QtWidgets.QTabWidget()
         root_layout.addWidget(self.tabs)
+
+        tab_binding_root = QtWidgets.QWidget()
+        binding_root_layout = QtWidgets.QVBoxLayout(tab_binding_root)
+        binding_root_layout.setContentsMargins(0, 0, 0, 0)
+        self.rig_sub_tabs = QtWidgets.QTabWidget()
+        binding_root_layout.addWidget(self.rig_sub_tabs)
+        self.tabs.addTab(tab_binding_root, '绑定')
+
+        tab_animation_root = QtWidgets.QWidget()
+        animation_root_layout = QtWidgets.QVBoxLayout(tab_animation_root)
+        animation_root_layout.setContentsMargins(0, 0, 0, 0)
+        self.anim_sub_tabs = QtWidgets.QTabWidget()
+        animation_root_layout.addWidget(self.anim_sub_tabs)
+        self.tabs.addTab(tab_animation_root, '动画')
 
         label_width = 72
         row_height = 28
@@ -128,28 +142,44 @@ class RetargetUI(QtWidgets.QWidget):
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
 
-        self.tabs.addTab(tab_retarget, '批量重定向')
-
-        # ---- Tab 2: 绑定模块 ----
+        # ---- 绑定子 Tab: 绑定导出 ----
         tab_rig = QtWidgets.QWidget()
         rig_layout = QtWidgets.QVBoxLayout(tab_rig)
+        rig_layout.setContentsMargins(12, 12, 12, 12)
+        rig_layout.setSpacing(8)
 
-        rig_layout.addWidget(QtWidgets.QLabel('UE 绑定导入路径'))
+        rig_path_grid = QtWidgets.QGridLayout()
+        rig_path_grid.setHorizontalSpacing(8)
+        rig_path_grid.setVerticalSpacing(8)
+        rig_path_grid.setColumnStretch(1, 1)
+
+        rig_path_grid.addWidget(_style_path_label('UE 导入路径:'), 0, 0)
         self.rig_ue_import_line = QtWidgets.QLineEdit('/Game/Maya')
-        rig_layout.addWidget(self.rig_ue_import_line)
+        self.rig_ue_import_line.setMinimumHeight(row_height)
+        rig_path_grid.addWidget(self.rig_ue_import_line, 0, 1, 1, 2)
+        rig_layout.addLayout(rig_path_grid)
 
         check_rig_btn = QtWidgets.QPushButton('自动检测')
+        check_rig_btn.setMinimumHeight(36)
         check_rig_btn.clicked.connect(self.auto_check_rig_asset)
         rig_layout.addWidget(check_rig_btn)
 
-        self.rig_task_widget = TaskProgressWidget()
-        self.rig_task_widget.setMinimumHeight(260)
-        rig_layout.addWidget(self.rig_task_widget)
-        self._init_rig_task_list()
+        self.rig_check_progress_bar = QtWidgets.QProgressBar()
+        self.rig_check_progress_bar.setRange(0, 100)
+        self.rig_check_progress_bar.setValue(0)
+        rig_layout.addWidget(self.rig_check_progress_bar)
 
-        rig_layout.addStretch(1)
+        rig_check_group = QtWidgets.QGroupBox('资产检测')
+        rig_check_group_layout = QtWidgets.QVBoxLayout(rig_check_group)
+        rig_check_group_layout.setContentsMargins(8, 8, 8, 8)
+        self.rig_check_widget = CheckListWidget()
+        self.rig_check_widget.setMinimumHeight(260)
+        rig_check_group_layout.addWidget(self.rig_check_widget)
+        rig_layout.addWidget(rig_check_group, 1)
+        self._init_rig_check_list()
 
         send_rig_btn = QtWidgets.QPushButton('Send To UE')
+        send_rig_btn.setMinimumHeight(36)
         send_rig_btn.clicked.connect(self.send_rig_to_ue)
         rig_layout.addWidget(send_rig_btn)
 
@@ -158,9 +188,9 @@ class RetargetUI(QtWidgets.QWidget):
         self.rig_progress_bar.setValue(0)
         rig_layout.addWidget(self.rig_progress_bar)
 
-        self.tabs.addTab(tab_rig, '绑定导出')
+        self.rig_sub_tabs.addTab(tab_rig, '绑定导出')
 
-        # ---- Tab 3: 动画模块 ----
+        # ---- 动画子 Tab: 动画导出 ----
         tab_anim = QtWidgets.QWidget()
         anim_layout = QtWidgets.QVBoxLayout(tab_anim)
         anim_layout.setContentsMargins(12, 12, 12, 12)
@@ -207,7 +237,8 @@ class RetargetUI(QtWidgets.QWidget):
         self.anim_progress_bar.setValue(0)
         anim_layout.addWidget(self.anim_progress_bar)
 
-        self.tabs.addTab(tab_anim, '动画导出')
+        self.anim_sub_tabs.addTab(tab_retarget, '批量重定向')
+        self.anim_sub_tabs.addTab(tab_anim, '动画导出')
 
     def open_dialog(self):
         result = cmds.fileDialog2(
@@ -507,7 +538,7 @@ class RetargetUI(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, 'UE 端报错', str(msg))
 
     # ---------- 绑定模块: 发送骨骼+模型到 UE ----------
-    def _rig_check_task_specs(self):
+    def _rig_check_specs(self):
         return [
             ('selection', '选择蒙皮 Mesh 和骨骼根节点'),
             ('mesh', '检测 Mesh'),
@@ -522,104 +553,52 @@ class RetargetUI(QtWidgets.QWidget):
             ('export_filter', '导出内容过滤 Mesh + Joint'),
         ]
 
-    def _init_rig_task_list(self):
-        self.rig_task_items = {}
-        steps = [(label, None, None) for _task_id, label in self._rig_check_task_specs()]
-        self.rig_task_widget.load(steps)
-        for index, (task_id, _label) in enumerate(self._rig_check_task_specs()):
-            self.rig_task_items[task_id] = index
+    def _init_rig_check_list(self):
+        self.rig_check_widget.load(self._rig_check_specs())
 
-    def _set_rig_task_status(self, task_id, status, detail=''):
-        index = getattr(self, 'rig_task_items', {}).get(task_id)
-        if index is None:
-            return
-        state_map = {
-            'pending': 'pending',
-            'running': 'running',
-            'ok': 'done',
-            'warning': 'warning',
-            'error': 'failed',
-        }
-        base_label = dict(self._rig_check_task_specs()).get(task_id, task_id)
-        text = f'{base_label} - {detail}' if detail else base_label
-        self.rig_task_widget.set_item_state(index, state_map.get(status, 'pending'), text)
-        total = max(1, len(self._rig_check_task_specs()))
-        if status in ('ok', 'warning', 'error'):
-            self.rig_task_widget.set_progress(float(index + 1) / float(total))
-        elif status == 'running':
-            self.rig_task_widget.set_progress(float(index) / float(total))
+    def _set_rig_check(self, check_id, status, details=None):
+        self.rig_check_widget.set_check(check_id, status, details)
 
-    def _reset_rig_task_statuses(self):
-        self._init_rig_task_list()
-        self.rig_task_widget.set_progress(0.0)
+    def _update_rig_check_progress(self):
+        total = max(1, len(self._rig_check_specs()))
+        self._set_rig_check_progress(
+            int(self.rig_check_widget.count_finished() * 100 / total))
 
-    def _apply_rig_validation_to_tasks(self, validation):
-        errors = validation.get('errors') or []
-        warnings = validation.get('warnings') or []
-        text_errors = '\n'.join(errors)
-        text_warnings = '\n'.join(warnings)
-
-        task_checks = {
-            'root': ('Root joint', 'Root'),
-            'duplicate_joint': ('重复骨骼名', ''),
-            'generated_joint': ('', '默认生成骨骼名'),
-            'mesh_bone_name': ('Mesh 名称与骨骼重名', ''),
-            'mesh_scale': ('', 'Scale 不是 1'),
-            'skin_cluster': ('没有 SkinCluster', ''),
-            'weights': ('权重', '权重'),
-            'root_origin': ('', 'Root 不在世界原点'),
-        }
-        for task_id, (error_key, warning_key) in task_checks.items():
-            if error_key and error_key in text_errors:
-                self._set_rig_task_status(task_id, 'error')
-            elif warning_key and warning_key in text_warnings:
-                self._set_rig_task_status(task_id, 'warning')
-            else:
-                self._set_rig_task_status(task_id, 'ok')
-
-        self._set_rig_task_status('export_filter', 'ok')
-
-    def _set_rig_progress(self, value):
-        self.rig_progress_bar.setValue(value)
+    def _set_rig_check_progress(self, value):
+        self.rig_check_progress_bar.setValue(value)
         QtWidgets.QApplication.processEvents()
 
+    def _reset_rig_checks(self):
+        self.rig_check_widget.reset_all()
+        self._set_rig_check_progress(0)
+
     def auto_check_rig_asset(self):
-        self._reset_rig_task_statuses()
-        self._set_rig_progress(0)
-        self._set_rig_task_status('selection', 'running')
+        self._reset_rig_checks()
+        self._set_rig_check('selection', 'running')
 
         sel = cmds.ls(sl=True, long=True) or []
         if not sel:
-            self._set_rig_task_status('selection', 'error', '未选择')
-            self._set_rig_progress(0)
+            self._set_rig_check('selection', 'error', ['未选择任何对象'])
+            self._update_rig_check_progress()
             return
 
         mesh_transforms, root_joints, export_nodes = (
             asset_validation.collect_rig_export_nodes(sel))
-        self._set_rig_task_status('selection', 'ok')
-        self._set_rig_task_status('mesh', 'running')
-        if not mesh_transforms:
-            self._set_rig_task_status('mesh', 'error', '未找到 Mesh')
-            self._set_rig_progress(0)
-            return
-        self._set_rig_task_status('mesh', 'ok', f'{len(mesh_transforms)} 个')
+        self._set_rig_check(
+            'selection', 'ok',
+            ['已选 %d 个对象' % len(sel)])
+        self._update_rig_check_progress()
 
-        self._set_rig_task_status('root', 'running')
-        if not root_joints:
-            self._set_rig_task_status('root', 'error', '未找到 Root')
-            self._set_rig_progress(0)
-            return
-        self._set_rig_task_status('root', 'ok', f'{len(root_joints)} 个')
-
-        validation = asset_validation.validate_rig_asset(
+        checks = asset_validation.validate_rig_asset_checks(
             mesh_transforms, root_joints, export_nodes)
-        self._apply_rig_validation_to_tasks(validation)
-        if validation['errors']:
-            self._set_rig_progress(0)
-        elif validation['warnings']:
-            self._set_rig_progress(100)
-        else:
-            self._set_rig_progress(100)
+        for check_id, result in checks.items():
+            self._set_rig_check(
+                check_id, result['status'], result.get('details'))
+            self._update_rig_check_progress()
+
+    def _set_rig_progress(self, value):
+        self.rig_progress_bar.setValue(value)
+        QtWidgets.QApplication.processEvents()
 
     def send_rig_to_ue(self):
         self._set_rig_progress(0)
