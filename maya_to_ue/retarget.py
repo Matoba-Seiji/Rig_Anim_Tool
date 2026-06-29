@@ -9,6 +9,8 @@ import time as _time
 from maya_to_ue import asset_validation, maya_fbx, ue_remote, ue_scripts, ui_widgets
 from maya_to_ue.maya_ui import get_maya_main_window
 from Auto_Rig import UI as auto_rig_ui
+from maya_to_ue.binding.rename import RenameUI
+import maya_to_ue.binding.control_lib.controllib as control_lib
 
 CheckListWidget = ui_widgets.CheckListWidget
 DropPathLineEdit = ui_widgets.DropPathLineEdit
@@ -17,7 +19,50 @@ FbxFileListWidget = ui_widgets.FbxFileListWidget
 _TAB_BIND = 0
 _TAB_ANIM = 1
 _SIZE_ANIM = QtCore.QSize(800, 680)
+_RIG_TAB_CONTROL_LIB = 2
 _SIZE_BIND = QtCore.QSize(540, 960)
+_CONTROL_LIB_ICON_SIZE = 40
+_CONTROL_LIB_ICON_CELL = 44
+
+
+def _sync_control_lib_panel(panel):
+    shape_list = panel.listWidget
+    count = shape_list.count()
+    if not count:
+        return
+
+    cell = _CONTROL_LIB_ICON_CELL
+    shape_list.setIconSize(QtCore.QSize(_CONTROL_LIB_ICON_SIZE, _CONTROL_LIB_ICON_SIZE))
+    shape_list.setGridSize(QtCore.QSize(cell, cell))
+    shape_list.setFrameShape(QtWidgets.QFrame.NoFrame)
+    shape_list.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+    QtWidgets.QApplication.processEvents()
+    viewport_w = shape_list.viewport().width()
+    if viewport_w <= 0:
+        viewport_w = max(panel.width() - 16, cell * 4)
+    cols = max(1, viewport_w // cell)
+    rows = (count + cols - 1) // cols
+    spacing = shape_list.spacing()
+    shape_h = rows * cell + max(0, rows - 1) * spacing + 2
+    shape_list.setFixedHeight(shape_h)
+
+    color_list = panel.listWidget_color
+    color_count = color_list.count()
+    if color_count:
+        color_cell = 32
+        color_list.setGridSize(QtCore.QSize(color_cell, color_cell))
+        color_list.setFrameShape(QtWidgets.QFrame.NoFrame)
+        color_list.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        color_w = color_list.viewport().width()
+        if color_w <= 0:
+            color_w = max(panel.width() - 16, color_cell * 8)
+        color_cols = max(1, color_w // color_cell)
+        color_rows = (color_count + color_cols - 1) // color_cols
+        color_h = color_rows * color_cell + max(0, color_rows - 1) * color_list.spacing() + 2
+        color_list.setFixedHeight(color_h)
+
+    panel.adjustSize()
 
 # 加载HumanIK控制代码
 MAYA_LOCATION = os.environ['MAYA_LOCATION']
@@ -38,13 +83,13 @@ class RetargetUI(QtWidgets.QWidget):
 
         root_layout = QtWidgets.QVBoxLayout(self)
         self.tabs = QtWidgets.QTabWidget()
-        root_layout.addWidget(self.tabs)
+        root_layout.addWidget(self.tabs, 1)
 
         tab_binding_root = QtWidgets.QWidget()
         binding_root_layout = QtWidgets.QVBoxLayout(tab_binding_root)
         binding_root_layout.setContentsMargins(0, 0, 0, 0)
         self.rig_sub_tabs = QtWidgets.QTabWidget()
-        binding_root_layout.addWidget(self.rig_sub_tabs)
+        binding_root_layout.addWidget(self.rig_sub_tabs, 1)
         self.tabs.addTab(tab_binding_root, '绑定')
 
         tab_animation_root = QtWidgets.QWidget()
@@ -151,6 +196,29 @@ class RetargetUI(QtWidgets.QWidget):
         auto_rig_layout.addWidget(auto_rig_scroll)
         self.rig_sub_tabs.addTab(tab_auto_rig, '自动绑定')
 
+        # ---- 绑定子 Tab: 重命名 ----
+        tab_rename = QtWidgets.QWidget()
+        rename_layout = QtWidgets.QVBoxLayout(tab_rename)
+        rename_layout.setContentsMargins(0, 0, 0, 0)
+        rename_scroll = QtWidgets.QScrollArea()
+        rename_scroll.setWidgetResizable(True)
+        rename_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        rename_scroll.setMinimumHeight(720)
+        self.rename_panel = RenameUI(rename_scroll)
+        rename_scroll.setWidget(self.rename_panel)
+        rename_layout.addWidget(rename_scroll)
+        self.rig_sub_tabs.addTab(tab_rename, '重命名')
+
+        # ---- 绑定子 Tab: 控制器库 ----
+        tab_control_lib = QtWidgets.QWidget()
+        control_lib_layout = QtWidgets.QVBoxLayout(tab_control_lib)
+        control_lib_layout.setContentsMargins(0, 0, 0, 0)
+        self.control_lib_panel = control_lib.Control_libUI(tab_control_lib)
+        control_lib_layout.addWidget(self.control_lib_panel)
+        self.rig_sub_tabs.addTab(tab_control_lib, '控制器库')
+        QtCore.QTimer.singleShot(
+            0, lambda: _sync_control_lib_panel(self.control_lib_panel))
+
         # ---- 绑定子 Tab: 绑定导出 ----
         tab_rig = QtWidgets.QWidget()
         rig_layout = QtWidgets.QVBoxLayout(tab_rig)
@@ -250,12 +318,40 @@ class RetargetUI(QtWidgets.QWidget):
         self.anim_sub_tabs.addTab(tab_anim, '动画导出')
 
         self.tabs.currentChanged.connect(self._on_main_tab_changed)
+        self.rig_sub_tabs.currentChanged.connect(self._on_rig_sub_tab_changed)
         self._on_main_tab_changed(self.tabs.currentIndex())
 
-    def _on_main_tab_changed(self, index):
-        size = _SIZE_BIND if index == _TAB_BIND else _SIZE_ANIM
+    def _binding_window_size(self):
+        if self.rig_sub_tabs.currentIndex() != _RIG_TAB_CONTROL_LIB:
+            return _SIZE_BIND
+        panel = self.control_lib_panel
+        _sync_control_lib_panel(panel)
+        extra = self.height() - self.rig_sub_tabs.height()
+        if extra < 72:
+            extra = 100
+        height = panel.sizeHint().height() + extra + 4
+        return QtCore.QSize(540, max(560, min(height, 760)))
+
+    def _apply_window_size(self):
+        if self.tabs.currentIndex() == _TAB_BIND:
+            size = self._binding_window_size()
+        else:
+            size = _SIZE_ANIM
         self.setMinimumSize(size)
         self.resize(size)
+        QtWidgets.QApplication.processEvents()
+
+    def _on_main_tab_changed(self, index):
+        if index == _TAB_BIND and self.rig_sub_tabs.currentIndex() == _RIG_TAB_CONTROL_LIB:
+            _sync_control_lib_panel(self.control_lib_panel)
+        self._apply_window_size()
+
+    def _on_rig_sub_tab_changed(self, index):
+        if self.tabs.currentIndex() != _TAB_BIND:
+            return
+        if index == _RIG_TAB_CONTROL_LIB:
+            _sync_control_lib_panel(self.control_lib_panel)
+        self._apply_window_size()
 
     def open_dialog(self):
         result = cmds.fileDialog2(

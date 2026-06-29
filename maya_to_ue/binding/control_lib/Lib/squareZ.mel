@@ -1,0 +1,22 @@
+proc string squareZ()
+{
+
+$control = `createNode transform -n "curve"`;
+createNode nurbsCurve -n "curveShape" -p $control;
+	setAttr -k off ".v";
+	setAttr ".cc" -type "nurbsCurve" 
+		1 4 0 no 3
+		5 0 1 2 3 4
+		5
+		-0.5 0.5 0
+		-0.5 -0.5 0
+		0.5 -0.5 0
+		0.5 0.5 0
+		-0.5 0.5 0
+		;
+	//setAttr ".overrideEnabled" 1;
+	//setAttr ".overrideColor" 1;
+
+return $control;
+}
+squareZ();

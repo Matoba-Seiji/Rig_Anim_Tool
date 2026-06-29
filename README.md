@@ -14,15 +14,13 @@ MayaToUE/
 │   ├── maya_fbx.py
 │   ├── ue_remote.py
 │   ├── ue_scripts.py
-│   └── maya_ui.py         # Maya 主窗口辅助
+│   ├── maya_ui.py         # Maya 主窗口辅助
+│   └── binding/           # 绑定辅助工具
+│       ├── rename.py
+│       └── control_lib/   # 曲线控制器 mel 库
+│           ├── controllib.py
+│           └── Lib/*.mel
 └── Auto_Rig/              # 自动绑定子系统
-    ├── UI.py
-    ├── joins_operate.py   # 骨架操作
-    ├── ctrls_create.py    # 控制器创建
-    ├── finish.py / advanced.py / assist_tools.py / dragon.py
-    ├── pre_joints/        # 预设骨架 .mb
-    ├── jnt_rebuild/       # 骨架重建缓存
-    └── ctrls_lib/         # 控制器模板 .mb
 ```
 
 ## 启动
@@ -35,6 +33,8 @@ MayaToUE/
 | Tab | 功能 |
 |-----|------|
 | 绑定 → 自动绑定 | 导入预设骨架、一键创建 FK/IK 控制器 |
+| 绑定 → 重命名 | 批量添加前后缀、替换字符串、重命名 |
+| 绑定 → 控制器库 | 曲线控制器创建、上色、替换与镜像 |
 | 绑定 → 绑定导出 | 资产检测、FBX 导出、Send To UE |
 | 动画 → 批量重定向 | HumanIK 动画重定向批量处理 |
 | 动画 → 动画导出 | FBX 动画导入 UE |
