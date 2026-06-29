@@ -1,22 +1,23 @@
 from maya import cmds
 from PySide2 import QtWidgets, QtCore
-import maya.OpenMayaUI as omui
-from shiboken2 import wrapInstance
 from maya import mel
 import os
 import json
 import tempfile
 import time as _time
 
-import ui_widgets
-import asset_validation
-import maya_fbx
-import ue_remote
-import ue_scripts
+from maya_to_ue import asset_validation, maya_fbx, ue_remote, ue_scripts, ui_widgets
+from maya_to_ue.maya_ui import get_maya_main_window
+from Auto_Rig import UI as auto_rig_ui
 
 CheckListWidget = ui_widgets.CheckListWidget
 DropPathLineEdit = ui_widgets.DropPathLineEdit
 FbxFileListWidget = ui_widgets.FbxFileListWidget
+
+_TAB_BIND = 0
+_TAB_ANIM = 1
+_SIZE_ANIM = QtCore.QSize(800, 680)
+_SIZE_BIND = QtCore.QSize(540, 960)
 
 # 加载HumanIK控制代码
 MAYA_LOCATION = os.environ['MAYA_LOCATION']
@@ -27,11 +28,6 @@ mel.eval('source "'+MAYA_LOCATION + '/scripts/others/hikDefinitionOperations.mel
 
 # ---------------- Maya UI ----------------
 
-def get_maya_main_window():
-    main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
-
-
 class RetargetUI(QtWidgets.QWidget):
     def __init__(self):
         parent = get_maya_main_window()
@@ -39,7 +35,6 @@ class RetargetUI(QtWidgets.QWidget):
 
         self.setWindowTitle('绑定动画工具')
         self.setWindowFlags(QtCore.Qt.Dialog)
-        self.setMinimumWidth(800)
 
         root_layout = QtWidgets.QVBoxLayout(self)
         self.tabs = QtWidgets.QTabWidget()
@@ -142,6 +137,20 @@ class RetargetUI(QtWidgets.QWidget):
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
 
+        # ---- 绑定子 Tab: 自动绑定 (Auto_Rig) ----
+        tab_auto_rig = QtWidgets.QWidget()
+        auto_rig_layout = QtWidgets.QVBoxLayout(tab_auto_rig)
+        auto_rig_layout.setContentsMargins(0, 0, 0, 0)
+        auto_rig_scroll = QtWidgets.QScrollArea()
+        auto_rig_scroll.setWidgetResizable(True)
+        auto_rig_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        auto_rig_scroll.setMinimumHeight(720)
+        self.auto_rig_scroll = auto_rig_scroll
+        self.auto_rig_panel = auto_rig_ui.UI(auto_rig_scroll)
+        auto_rig_scroll.setWidget(self.auto_rig_panel)
+        auto_rig_layout.addWidget(auto_rig_scroll)
+        self.rig_sub_tabs.addTab(tab_auto_rig, '自动绑定')
+
         # ---- 绑定子 Tab: 绑定导出 ----
         tab_rig = QtWidgets.QWidget()
         rig_layout = QtWidgets.QVBoxLayout(tab_rig)
@@ -154,7 +163,7 @@ class RetargetUI(QtWidgets.QWidget):
         rig_path_grid.setColumnStretch(1, 1)
 
         rig_path_grid.addWidget(_style_path_label('UE 导入路径:'), 0, 0)
-        self.rig_ue_import_line = QtWidgets.QLineEdit('/Game/Maya')
+        self.rig_ue_import_line = QtWidgets.QLineEdit('/Game/Rig')
         self.rig_ue_import_line.setMinimumHeight(row_height)
         rig_path_grid.addWidget(self.rig_ue_import_line, 0, 1, 1, 2)
         rig_layout.addLayout(rig_path_grid)
@@ -173,7 +182,7 @@ class RetargetUI(QtWidgets.QWidget):
         rig_check_group_layout = QtWidgets.QVBoxLayout(rig_check_group)
         rig_check_group_layout.setContentsMargins(8, 8, 8, 8)
         self.rig_check_widget = CheckListWidget()
-        self.rig_check_widget.setMinimumHeight(260)
+        self.rig_check_widget.setMinimumHeight(400)
         rig_check_group_layout.addWidget(self.rig_check_widget)
         rig_layout.addWidget(rig_check_group, 1)
         self._init_rig_check_list()
@@ -202,7 +211,7 @@ class RetargetUI(QtWidgets.QWidget):
         anim_path_grid.setColumnStretch(1, 1)
 
         anim_path_grid.addWidget(_style_path_label('UE 导入路径:'), 0, 0)
-        self.anim_ue_import_line = QtWidgets.QLineEdit('/Game/Maya/Animations')
+        self.anim_ue_import_line = QtWidgets.QLineEdit('/Game/Animations')
         self.anim_ue_import_line.setMinimumHeight(row_height)
         anim_path_grid.addWidget(self.anim_ue_import_line, 0, 1, 1, 2)
 
@@ -239,6 +248,14 @@ class RetargetUI(QtWidgets.QWidget):
 
         self.anim_sub_tabs.addTab(tab_retarget, '批量重定向')
         self.anim_sub_tabs.addTab(tab_anim, '动画导出')
+
+        self.tabs.currentChanged.connect(self._on_main_tab_changed)
+        self._on_main_tab_changed(self.tabs.currentIndex())
+
+    def _on_main_tab_changed(self, index):
+        size = _SIZE_BIND if index == _TAB_BIND else _SIZE_ANIM
+        self.setMinimumSize(size)
+        self.resize(size)
 
     def open_dialog(self):
         result = cmds.fileDialog2(
