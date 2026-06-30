@@ -6,11 +6,15 @@ import json
 import tempfile
 import time as _time
 
-from maya_to_ue import asset_validation, maya_fbx, ue_remote, ue_scripts, ui_widgets
-from maya_to_ue.maya_ui import get_maya_main_window
-from Auto_Rig import UI as auto_rig_ui
-from maya_to_ue.binding.rename import RenameUI
-import maya_to_ue.binding.control_lib.controllib as control_lib
+from rig_anim_tool.pipeline import rig_validation as asset_validation
+from rig_anim_tool.pipeline import fbx_export as maya_fbx
+from rig_anim_tool.ue import remote as ue_remote
+from rig_anim_tool.ue import import_scripts as ue_scripts
+from rig_anim_tool.ui import widgets as ui_widgets
+from rig_anim_tool.core.maya_ui import get_maya_main_window
+from rig_anim_tool.rig import ui as auto_rig_ui
+from rig_anim_tool.binding.rename import RenameUI
+from rig_anim_tool.binding.control_lib import ui as control_lib
 
 CheckListWidget = ui_widgets.CheckListWidget
 DropPathLineEdit = ui_widgets.DropPathLineEdit
@@ -139,7 +143,7 @@ class RetargetUI(QtWidgets.QWidget):
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
 
-        # ---- 绑定子 Tab: 自动绑定 (Auto_Rig) ----
+        # ---- 绑定子 Tab: 自动绑定 ----
         tab_auto_rig = QtWidgets.QWidget()
         auto_rig_layout = QtWidgets.QVBoxLayout(tab_auto_rig)
         auto_rig_layout.setContentsMargins(0, 0, 0, 0)
@@ -685,7 +689,7 @@ class RetargetUI(QtWidgets.QWidget):
             return
 
         version = _time.strftime('v%Y%m%d_%H%M%S')
-        publish_dir = os.path.join(tempfile.gettempdir(), 'MayaToUE_publish',
+        publish_dir = os.path.join(tempfile.gettempdir(), 'RigAnimTool_publish',
                                    'Character', safe_name, version)
         os.makedirs(publish_dir, exist_ok=True)
         fbx_path = os.path.join(publish_dir, safe_name + '.fbx').replace('\\', '/')

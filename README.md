@@ -1,31 +1,49 @@
-# MayaToUE
+# 绑定动画工具（RigAnimTool）
 
 Maya 内绑定与动画管线工具，支持自动绑定、HumanIK 批量重定向、FBX 导出，以及通过 UE Remote Execution 一键导入。
 
 ## 目录结构
 
 ```
-MayaToUE/
-├── run_ui.py              # Maya 启动入口
-├── maya_to_ue/            # 主功能包
-│   ├── retarget.py        # 主界面（绑定 / 动画 Tab）
-│   ├── ui_widgets.py      # 通用 Qt 控件
-│   ├── asset_validation.py
-│   ├── maya_fbx.py
-│   ├── ue_remote.py
-│   ├── ue_scripts.py
-│   ├── maya_ui.py         # Maya 主窗口辅助
-│   └── binding/           # 绑定辅助工具
-│       ├── rename.py
-│       └── control_lib/   # 曲线控制器 mel 库
-│           ├── controllib.py
-│           └── Lib/*.mel
-└── Auto_Rig/              # 自动绑定子系统
+仓库根目录/
+├── run_ui.py                    # Maya 启动入口
+└── rig_anim_tool/               # Python 主包
+    ├── __init__.py              # 公开 API: show_ui, RetargetUI
+    ├── core/                    # 共享基础
+    │   ├── maya_ui.py           # Maya 主窗口 Qt 父控件
+    │   └── undo.py              # 撤销块装饰器
+    ├── ui/
+    │   ├── widgets.py           # 通用 Qt 控件
+    │   └── main_window.py       # 主界面（绑定 / 动画 Tab）
+    ├── pipeline/
+    │   ├── rig_validation.py    # 绑定资产检测
+    │   └── fbx_export.py        # Maya FBX 导出
+    ├── ue/
+    │   ├── remote.py            # UE Remote Execution 客户端
+    │   └── import_scripts.py    # UE 端导入脚本生成
+    ├── binding/                 # 绑定辅助工具
+    │   ├── rename.py            # 批量重命名
+    │   └── control_lib/
+    │       ├── ui.py            # 控制器库界面
+    │       └── shapes/          # 曲线控制器 mel + png
+    └── rig/                     # 自动绑定
+        ├── ui.py
+        ├── config.py
+        ├── joints.py
+        ├── controllers.py
+        ├── advanced.py
+        ├── tools.py
+        ├── finish.py
+        ├── dragon.py
+        └── assets/
+            ├── pre_joints/
+            ├── jnt_rebuild/
+            └── ctrls_lib/
 ```
 
 ## 启动
 
-1. 设置环境变量 `MAYATOUE_SCRIPT_DIR` 为本仓库根目录。
+1. 设置环境变量 **`RIG_ANIM_TOOL_DIR`** 为本仓库根目录（旧名 `MAYATOUE_SCRIPT_DIR` 仍兼容）。
 2. 在 Maya 中执行 `run_ui.py`（Shelf 按钮或 `exec(open(...).read())`）。
 
 ## 功能

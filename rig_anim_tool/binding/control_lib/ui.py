@@ -1,12 +1,13 @@
 import os
-from functools import wraps
 
 from maya import cmds, mel
 from PySide2 import QtWidgets, QtCore, QtGui
 
-from maya_to_ue.maya_ui import get_maya_main_window
+from rig_anim_tool.core.maya_ui import get_maya_main_window
+from rig_anim_tool.core.undo import make_undo
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+SHAPES_DIR = os.path.join(PACKAGE_DIR, 'shapes')
 COLOR_LIST_HEIGHT = 130
 ICON_SIZE = 56
 ICON_CELL = ICON_SIZE + 8
@@ -26,20 +27,19 @@ BackGroundColor = [
 _PNG_ICON_CACHE = {}
 
 
-def _lib_dir():
-    script_root = os.environ.get('MAYATOUE_SCRIPT_DIR', '')
+def _shapes_dir():
+    script_root = os.environ.get('RIG_ANIM_TOOL_DIR', '')
     candidates = [
-        os.path.join(PACKAGE_DIR, 'Lib'),
-        os.path.join(script_root, 'maya_to_ue', 'binding', 'control_lib', 'Lib'),
-        r'C:\Users\yanchaofeng\Documents\maya\2024\scripts\My\control_lib\Lib',
+        SHAPES_DIR,
+        os.path.join(script_root, 'rig_anim_tool', 'binding', 'control_lib', 'shapes'),
     ]
     for path in candidates:
         if path and os.path.isdir(path):
             return path
-    return os.path.join(PACKAGE_DIR, 'Lib')
+    return SHAPES_DIR
 
 
-LIB_DIR = _lib_dir()
+LIB_DIR = _shapes_dir()
 
 
 def _icon_from_png(png_path):
@@ -75,17 +75,6 @@ def _icon_from_png(png_path):
 
     _PNG_ICON_CACHE[png_path] = icon
     return icon
-
-
-def make_undo(func):
-    @wraps(func)
-    def wrap(*args, **kwargs):
-        cmds.undoInfo(openChunk=True)
-        try:
-            return func(*args, **kwargs)
-        finally:
-            cmds.undoInfo(closeChunk=True)
-    return wrap
 
 
 class Control_libUI(QtWidgets.QWidget):

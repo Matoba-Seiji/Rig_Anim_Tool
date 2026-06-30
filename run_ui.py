@@ -2,7 +2,9 @@ import os
 import shutil
 import sys
 
-d = os.environ['MAYATOUE_SCRIPT_DIR']
+d = os.environ.get('RIG_ANIM_TOOL_DIR') or os.environ.get('MAYATOUE_SCRIPT_DIR')
+if not d:
+    raise EnvironmentError('请设置环境变量 RIG_ANIM_TOOL_DIR 为本仓库根目录')
 if d in sys.path:
     sys.path.remove(d)
 sys.path.insert(0, d)
@@ -20,9 +22,10 @@ def _purge_modules(prefix):
 
 
 # ponytail: reload 只重跑旧 __file__，不会换路径；先踢出缓存再全新 import
+_purge_modules('rig_anim_tool')
 _purge_modules('maya_to_ue')
 _purge_modules('Auto_Rig')
 
-from maya_to_ue import retarget
+from rig_anim_tool.ui.main_window import show_ui
 
-retarget.show_ui()
+show_ui()

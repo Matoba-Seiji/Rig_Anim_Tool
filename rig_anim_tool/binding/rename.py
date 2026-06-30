@@ -1,9 +1,8 @@
-from functools import wraps
-
 from maya import cmds
 from PySide2 import QtWidgets, QtCore
 
-from maya_to_ue.maya_ui import get_maya_main_window
+from rig_anim_tool.core.maya_ui import get_maya_main_window
+from rig_anim_tool.core.undo import make_undo
 
 
 class Rename_functions:
@@ -104,17 +103,6 @@ class Rename_functions:
                 name = cmds.ls(i)
                 cmds.rename(name, new_name + f'_{first_num:03}')
                 first_num += 1
-
-
-def make_undo(func):
-    @wraps(func)
-    def wrap(*args, **kwargs):
-        cmds.undoInfo(openChunk=True)
-        try:
-            return func(*args, **kwargs)
-        finally:
-            cmds.undoInfo(closeChunk=True)
-    return wrap
 
 
 class RenameUI(QtWidgets.QWidget):
