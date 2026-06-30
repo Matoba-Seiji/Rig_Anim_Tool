@@ -7,6 +7,10 @@ from PySide2 import QtWidgets, QtCore, QtGui
 from maya_to_ue.maya_ui import get_maya_main_window
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+COLOR_LIST_HEIGHT = 130
+ICON_SIZE = 56
+ICON_CELL = ICON_SIZE + 8
+ICON_LIST_MIN_HEIGHT = 520
 
 BackGroundColor = [
     (0.47, 0.47, 0.47), (0, 0, 0), (0.5, 0.5, 0.5), (0.75, 0.75, 0.75),
@@ -19,7 +23,6 @@ BackGroundColor = [
     (0.18, 0.63, 0.63), (0.18, 0.4, 0.63), (0.43, 0.18, 0.63), (0.63, 0.18, 0.4),
 ]
 
-_ICON_SIZE = 40
 _PNG_ICON_CACHE = {}
 
 
@@ -52,7 +55,7 @@ def _icon_from_png(png_path):
         if image.loadFromData(data, 'PNG'):
             pixmap = QtGui.QPixmap.fromImage(
                 image.scaled(
-                    _ICON_SIZE, _ICON_SIZE,
+                    ICON_SIZE, ICON_SIZE,
                     QtCore.Qt.KeepAspectRatio,
                     QtCore.Qt.SmoothTransformation,
                 ))
@@ -65,7 +68,7 @@ def _icon_from_png(png_path):
         pixmap = QtGui.QPixmap(png_path)
         if not pixmap.isNull():
             icon = QtGui.QIcon(pixmap.scaled(
-                _ICON_SIZE, _ICON_SIZE,
+                ICON_SIZE, ICON_SIZE,
                 QtCore.Qt.KeepAspectRatio,
                 QtCore.Qt.SmoothTransformation,
             ))
@@ -93,23 +96,19 @@ class Control_libUI(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.setWindowTitle('控制器库')
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(4)
 
         self.listWidget = QtWidgets.QListWidget()
         self.listWidget.setViewMode(QtWidgets.QListWidget.IconMode)
         self.listWidget.setResizeMode(QtWidgets.QListWidget.Adjust)
         self.listWidget.setMovement(QtWidgets.QListWidget.Static)
-        self.listWidget.setIconSize(QtCore.QSize(_ICON_SIZE, _ICON_SIZE))
-        self.listWidget.setSpacing(4)
-        self.listWidget.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.listWidget.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.listWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
-        layout.addWidget(self.listWidget)
+        self.listWidget.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
+        self.listWidget.setGridSize(QtCore.QSize(ICON_CELL, ICON_CELL))
+        self.listWidget.setUniformItemSizes(True)
+        self.listWidget.setMinimumHeight(ICON_LIST_MIN_HEIGHT)
+        self.listWidget.setSpacing(6)
+        layout.addWidget(self.listWidget, 1)
 
         self._build_shape_buttons()
         self.listWidget.itemClicked.connect(self.logo_connect)
@@ -118,9 +117,7 @@ class Control_libUI(QtWidgets.QWidget):
         self.listWidget_color.setViewMode(QtWidgets.QListWidget.IconMode)
         self.listWidget_color.setMovement(QtWidgets.QListWidget.Static)
         self.listWidget_color.setResizeMode(QtWidgets.QListWidget.Adjust)
-        self.listWidget_color.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.listWidget_color.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.listWidget_color.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.listWidget_color.setFixedHeight(COLOR_LIST_HEIGHT)
         layout.addWidget(self.listWidget_color)
 
         self._build_color_swatches()
@@ -156,14 +153,12 @@ class Control_libUI(QtWidgets.QWidget):
             mel_path = os.path.join(LIB_DIR, name + '.mel')
             if not os.path.isfile(mel_path):
                 continue
-            png_path = os.path.join(LIB_DIR, png_file)
-            icon = _icon_from_png(png_path)
             item = QtWidgets.QListWidgetItem()
             item.setText('')
-            item.setIcon(icon)
+            item.setIcon(_icon_from_png(os.path.join(LIB_DIR, png_file)))
             item.setToolTip(name)
             item.setData(QtCore.Qt.UserRole, mel_path)
-            item.setSizeHint(QtCore.QSize(_ICON_SIZE + 4, _ICON_SIZE + 4))
+            item.setSizeHint(QtCore.QSize(ICON_CELL, ICON_CELL))
             self.listWidget.addItem(item)
 
     def logo_connect(self, item):
@@ -186,9 +181,8 @@ class Control_libUI(QtWidgets.QWidget):
             painter = QtGui.QPainter(pixmap)
             painter.fillRect(pixmap.rect(), color)
             painter.end()
-            icon = QtGui.QIcon(pixmap)
             item = QtWidgets.QListWidgetItem()
-            item.setIcon(icon)
+            item.setIcon(QtGui.QIcon(pixmap))
             item.setSizeHint(QtCore.QSize(32, 32))
             item.setData(QtCore.Qt.UserRole, color_rgb)
             self.listWidget_color.addItem(item)
