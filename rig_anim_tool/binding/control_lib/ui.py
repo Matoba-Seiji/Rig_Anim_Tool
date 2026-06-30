@@ -27,19 +27,7 @@ BackGroundColor = [
 _PNG_ICON_CACHE = {}
 
 
-def _shapes_dir():
-    script_root = os.environ.get('RIG_ANIM_TOOL_DIR', '')
-    candidates = [
-        SHAPES_DIR,
-        os.path.join(script_root, 'rig_anim_tool', 'binding', 'control_lib', 'shapes'),
-    ]
-    for path in candidates:
-        if path and os.path.isdir(path):
-            return path
-    return SHAPES_DIR
-
-
-LIB_DIR = _shapes_dir()
+LIB_DIR = SHAPES_DIR
 
 
 def _icon_from_png(png_path):

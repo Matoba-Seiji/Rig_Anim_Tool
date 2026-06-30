@@ -43,8 +43,11 @@ Maya 内绑定与动画管线工具，支持自动绑定、HumanIK 批量重定�
 
 ## 启动
 
-1. 设置环境变量 **`RIG_ANIM_TOOL_DIR`** 为本仓库根目录（旧名 `MAYATOUE_SCRIPT_DIR` 仍兼容）。
-2. 在 Maya 中执行 `run_ui.py`（Shelf 按钮或 `exec(open(...).read())`）。
+1. 设置环境变量 **`RIG_ANIM_TOOL_DIR`** 为本仓库根目录。
+   - Maya：在 `Documents/maya/2024/Maya.env` 写入  
+     `RIG_ANIM_TOOL_DIR=C:\Users\yanchaofeng\Documents\GitHub\Rig_Anim_Tool`  
+     改完**重启 Maya**。
+2. 在 Maya 中执行 `run_ui.py`（脚本编辑器打开文件点执行，或 Shelf）。
 
 ## 功能
 
