@@ -11,6 +11,7 @@ from rig_anim_tool.pipeline import fbx_export as maya_fbx
 from rig_anim_tool.ue import remote as ue_remote
 from rig_anim_tool.ue import import_scripts as ue_scripts
 from rig_anim_tool.ui import widgets as ui_widgets
+from rig_anim_tool.ui import select_picker
 from rig_anim_tool.core.maya_ui import get_maya_main_window
 from rig_anim_tool.rig import ui as auto_rig_ui
 from rig_anim_tool.binding.rename import RenameUI
@@ -277,6 +278,15 @@ class RetargetUI(QtWidgets.QWidget):
         self.anim_progress_bar.setRange(0, 100)
         self.anim_progress_bar.setValue(0)
         anim_layout.addWidget(self.anim_progress_bar)
+
+        # ---- 动画子 Tab: 选择工具 (Picker版) ----
+        select_picker._kill_orphan_scriptjobs()
+        tab_select_picker = QtWidgets.QWidget()
+        select_picker_layout = QtWidgets.QVBoxLayout(tab_select_picker)
+        select_picker_layout.setContentsMargins(0, 0, 0, 0)
+        self.select_picker_panel = select_picker.SelectionPage(tab_select_picker)
+        select_picker_layout.addWidget(self.select_picker_panel)
+        self.anim_sub_tabs.addTab(tab_select_picker, 'Picker')
 
         self.anim_sub_tabs.addTab(tab_retarget, '批量重定向')
         self.anim_sub_tabs.addTab(tab_anim, '动画导出')
