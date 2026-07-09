@@ -26,6 +26,7 @@ Maya 选择工具 (Picker 版) — 单文件无依赖版
 """
 
 import os
+import re
 import sys
 import json
 import math
@@ -72,7 +73,13 @@ import types as _types
 
 def _make_inline_module(mod_name, body_src):
     m = _types.ModuleType(mod_name)
+    # 内联算法代码依赖的公共名字，统一注入
     m.cmds = cmds
+    m.re = re
+    m.os = os
+    m.sys = sys
+    m.json = json
+    m.math = math
     exec(compile(body_src, mod_name + " (inline)", "exec"), m.__dict__)
     sys.modules[mod_name] = m
     return m
