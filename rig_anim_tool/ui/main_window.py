@@ -16,6 +16,7 @@ from rig_anim_tool.core.maya_ui import get_maya_main_window
 from rig_anim_tool.rig import ui as auto_rig_ui
 from rig_anim_tool.binding.rename import RenameUI
 from rig_anim_tool.binding.control_lib import ui as control_lib
+from rig_anim_tool.binding import transpose
 
 CheckListWidget = ui_widgets.CheckListWidget
 DropPathLineEdit = ui_widgets.DropPathLineEdit
@@ -183,6 +184,14 @@ class RetargetUI(QtWidgets.QWidget):
         control_lib_scroll.setWidget(self.control_lib_panel)
         control_lib_layout.addWidget(control_lib_scroll)
         self.rig_sub_tabs.addTab(tab_control_lib, '控制器库')
+
+        # ---- 绑定子 Tab: 转置 ----
+        tab_transpose = QtWidgets.QWidget()
+        transpose_layout = QtWidgets.QVBoxLayout(tab_transpose)
+        transpose_layout.setContentsMargins(0, 0, 0, 0)
+        self.transpose_panel = transpose.TransposeUI(tab_transpose)
+        transpose_layout.addWidget(self.transpose_panel)
+        self.rig_sub_tabs.addTab(tab_transpose, '转置')
 
         # ---- 绑定子 Tab: 绑定导出 ----
         tab_rig = QtWidgets.QWidget()
