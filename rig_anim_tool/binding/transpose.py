@@ -26,33 +26,33 @@ _SLOTS_DEF = [
     # Center column (spine numbered from hips upward)
     ('head',   'head',   220,  30, True,  'M', 'spine', True),
     ('neck',   'neck >', 220,  80, False, 'M', 'spine', True),
-    ('spine4', 'spine4', 220, 130, True,  'M', 'spine', True),
-    ('spine3', 'spine3', 220, 180, True,  'M', 'spine', True),
-    ('spine2', 'spine2', 220, 230, True,  'M', 'spine', True),
-    ('spine1', 'spine1', 220, 280, True,  'M', 'spine', True),
+    ('spine4', 'spine4', 220, 130, False, 'M', 'spine', True),
+    ('spine3', 'spine3', 220, 180, False, 'M', 'spine', True),
+    ('spine2', 'spine2', 220, 230, False, 'M', 'spine', True),
+    ('spine1', 'spine1', 220, 280, False, 'M', 'spine', True),
     ('hips',   'hips',   220, 330, True,  'M', 'spine', True),
 
     # Arms: clavicle near spine, shoulder/elbow/wrist/hand shifted outward half a button
-    ('L_clavicle', 'clavicle', 110, 130, True, 'L', 'arm', True),
-    ('L_shoulder', 'shoulder',  60, 180, True, 'L', 'arm', True),
-    ('L_elbow',    'elbow',     60, 230, True, 'L', 'arm', True),
-    ('L_wrist',    'wrist',     60, 280, True, 'L', 'arm', True),
-    ('L_hand',     'hand >',    60, 330, False, 'L', 'arm', True),
-    ('R_clavicle', 'clavicle', 330, 130, True, 'R', 'arm', True),
-    ('R_shoulder', 'shoulder', 380, 180, True, 'R', 'arm', True),
-    ('R_elbow',    'elbow',    380, 230, True, 'R', 'arm', True),
-    ('R_wrist',    'wrist',    380, 280, True, 'R', 'arm', True),
-    ('R_hand',     'hand >',   380, 330, False, 'R', 'arm', True),
+    ('L_clavicle', 'L_clavicle', 330, 130, True, 'L', 'arm', True),
+    ('L_shoulder', 'L_shoulder', 380, 180, True, 'L', 'arm', True),
+    ('L_elbow',    'L_elbow',    380, 230, True, 'L', 'arm', True),
+    ('L_wrist',    'L_wrist',    380, 280, True, 'L', 'arm', True),
+    ('L_hand',     'L_hand >',   380, 330, False, 'L', 'arm', True),
+    ('R_clavicle', 'R_clavicle', 110, 130, True, 'R', 'arm', True),
+    ('R_shoulder', 'R_shoulder',  60, 180, True, 'R', 'arm', True),
+    ('R_elbow',    'R_elbow',     60, 230, True, 'R', 'arm', True),
+    ('R_wrist',    'R_wrist',     60, 280, True, 'R', 'arm', True),
+    ('R_hand',     'R_hand >',    60, 330, False, 'R', 'arm', True),
 
     # Legs
-    ('L_upleg', 'upleg', 110, 380, True,  'L', 'leg', True),
-    ('R_upleg', 'upleg', 330, 380, True,  'R', 'leg', True),
-    ('L_leg',   'leg',   110, 430, True,  'L', 'leg', True),
-    ('R_leg',   'leg',   330, 430, True,  'R', 'leg', True),
-    ('L_foot',  'foot',  110, 480, True,  'L', 'leg', True),
-    ('R_foot',  'foot',  330, 480, True,  'R', 'leg', True),
-    ('L_ball',  'ball',  110, 530, True,  'L', 'leg', True),
-    ('R_ball',  'ball',  330, 530, True,  'R', 'leg', True),
+    ('L_upleg', 'L_upleg', 330, 380, True,  'L', 'leg', True),
+    ('R_upleg', 'R_upleg', 110, 380, True,  'R', 'leg', True),
+    ('L_leg',   'L_leg',   330, 430, True,  'L', 'leg', True),
+    ('R_leg',   'R_leg',   110, 430, True,  'R', 'leg', True),
+    ('L_foot',  'L_foot',  330, 480, True,  'L', 'leg', True),
+    ('R_foot',  'R_foot',  110, 480, True,  'R', 'leg', True),
+    ('L_ball',  'L_ball',  330, 530, True,  'L', 'leg', True),
+    ('R_ball',  'R_ball',  110, 530, True,  'R', 'leg', True),
 
     # Neck sub-slots (only shown in neck sub-view)
     ('neck1', 'neck1', 0, 0, False, 'M', 'neck', False),
@@ -69,7 +69,7 @@ for _side in ('L', 'R'):
         for _i in (1, 2, 3):
             _SLOTS_DEF.append(
                 ('%s_%s%d' % (_side, _fn, _i),
-                 '%s%d' % (_fn, _i),
+                 '%s_%s%d' % (_side, _fn, _i),
                  0, 0, False, _side, 'finger', False))
 
 
@@ -473,6 +473,25 @@ class TransposeUI(QtWidgets.QWidget):
         self.status_label.setObjectName('StatusLabel')
         root.addWidget(self.status_label)
 
+        # 生成按钮行（居中）
+        gen_layout = QtWidgets.QHBoxLayout()
+        gen_layout.setSpacing(12)
+        gen_layout.addStretch()
+        self.btn_gen_adv = QtWidgets.QPushButton('生成ADV')
+        self.btn_gen_adv.setObjectName('AccentBtn')
+        self.btn_gen_adv.setMinimumWidth(120)
+        self.btn_gen_adv.setMinimumHeight(36)
+        self.btn_gen_adv.clicked.connect(self.generate_adv)
+        self.btn_gen_hik = QtWidgets.QPushButton('生成HIK')
+        self.btn_gen_hik.setObjectName('AccentBtn')
+        self.btn_gen_hik.setMinimumWidth(120)
+        self.btn_gen_hik.setMinimumHeight(36)
+        self.btn_gen_hik.clicked.connect(self.generate_hik)
+        gen_layout.addWidget(self.btn_gen_adv)
+        gen_layout.addWidget(self.btn_gen_hik)
+        gen_layout.addStretch()
+        root.addLayout(gen_layout)
+
     def _tool_btn(self, text, slot):
         btn = QtWidgets.QPushButton(text)
         btn.setObjectName('ToolBtn')
@@ -728,3 +747,56 @@ class TransposeUI(QtWidgets.QWidget):
 
     def get_slot_def(self, slot_id):
         return SLOT_BY_ID.get(slot_id)
+
+    # ---------- Controller generation ----------
+    def _set_status(self, text, color='#E0A83E'):
+        self.status_label.setStyleSheet('color: %s;' % color)
+        self.status_label.setText(text)
+        QtWidgets.QApplication.processEvents()
+
+    def _validate_required(self):
+        required = [s for s in SLOTS if s['required']]
+        return [s['id'] for s in required if not self.mapping.get(s['id'])]
+
+    def generate_adv(self):
+        try:
+            from rig_anim_tool.binding import fbx_to_adv
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, '错误', '加载 ADV 模块失败: %s' % e)
+            return
+        missing = self._validate_required()
+        if missing:
+            QtWidgets.QMessageBox.warning(
+                self, '映射不完整', '以下必填槽位未映射: %s' % ', '.join(missing))
+            return
+        self._set_status('正在生成 ADV 控制器...', '#64A6FF')
+        try:
+            builder = fbx_to_adv.FbxToADV(mapping=self.get_mapping())
+            builder.build(generate_root=True)
+            self._set_status('ADV 控制器生成完成', '#4CAF50')
+        except Exception as e:
+            import traceback
+            self._set_status('ADV 生成失败: %s' % e, '#F44336')
+            QtWidgets.QMessageBox.critical(
+                self, 'ADV 生成失败', '%s\n\n%s' % (e, traceback.format_exc()))
+
+    def generate_hik(self):
+        try:
+            from rig_anim_tool.binding import fbx_to_hik
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, '错误', '加载 HIK 模块失败: %s' % e)
+            return
+        missing = self._validate_required()
+        if missing:
+            QtWidgets.QMessageBox.warning(
+                self, '映射不完整', '以下必填槽位未映射: %s' % ', '.join(missing))
+            return
+        self._set_status('正在生成 HIK 控制器...', '#64A6FF')
+        try:
+            result = fbx_to_hik.build_hik_from_mapping(self.get_mapping())
+            self._set_status(result.get('message', 'HIK 控制器生成完成'), '#4CAF50')
+        except Exception as e:
+            import traceback
+            self._set_status('HIK 生成失败: %s' % e, '#F44336')
+            QtWidgets.QMessageBox.critical(
+                self, 'HIK 生成失败', '%s\n\n%s' % (e, traceback.format_exc()))
