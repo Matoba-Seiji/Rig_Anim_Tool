@@ -714,15 +714,17 @@ def head():
     cmds.matchTransform('zero_C_head','jnt_C_headEnd')
     cmds.setAttr('ctrl_C_head.rotateZ',90)
     cmds.makeIdentity('ctrl_C_head',apply=True)
-    jnt_headPivot = cmds.xform('ctrl_C_head',q=True,ws=True,rotatePivot=True)
-    jnt_headPos = cmds.xform('jnt_C_head',q=True,ws=True,t=True)
-    cmds.xform('ctrl_C_head',ws=True,rotatePivot=jnt_headPos)
-    cmds.parentConstraint('ctrl_C_head','jnt_C_head',maintainOffset=True)    
 
     scale = cmds.getAttr('world_scale.scaleX')
     config.scale_node('zero_C_neck_001', scale)
-
     config.scale_node('zero_C_head', scale)
+
+    # 缩放后再设轴心，否则局部轴心值会被 zero 缩放放大
+    jnt_headPos = cmds.xform('jnt_C_head',q=True,ws=True,t=True)
+    cmds.xform('ctrl_C_head',ws=True,rotatePivot=jnt_headPos)
+
+    # 缩放后再建约束，否则 maintainOffset 偏移会被 zero 缩放放大
+    cmds.parentConstraint('ctrl_C_head','jnt_C_head',maintainOffset=True)
 
     cmds.parent('zero_C_neck_001','ctrl_world')
     cmds.parent('zero_C_head','ctrl_world')

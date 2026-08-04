@@ -20,6 +20,8 @@ def Twist(name,side):
         cmds.pointConstraint(cmds.listRelatives(f'jnt_{side}_{name}',children=True)[0],f'{side}_{name}twistikHnd')
         cmds.parent(f'{side}_{name}twistikHnd','twist')
     else:
+        # 手柄需跟随腕/踝完整变换，SC 解算器才能从手柄旋转提取扭转
+        cmds.parentConstraint(cmds.listRelatives(f'jnt_{side}_{name}',children=True)[0],f'{side}_{name}twistikHnd')
         cmds.parent(f'{side}_{name}twistikHnd','twist')
 
     cmds.hide(f'{side}_{name}twistikHnd')
